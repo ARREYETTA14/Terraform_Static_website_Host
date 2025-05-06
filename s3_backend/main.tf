@@ -11,7 +11,7 @@
 # ## creating dynamoDB table for state locking
 # resource "aws_dynamodb_table" "tf_state_lock" {
 #   name         = "terraform-lock-table1234"
-#   billing_mode = "PROVISION"
+#   billing_mode = "PAY_PER_REQUEST"
 #   hash_key     = "LockID"
 
 #   attribute {
