@@ -1,4 +1,3 @@
-
 ## VALUES TO PASS
 
 bucket_name = "Static_website"
