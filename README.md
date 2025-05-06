@@ -138,6 +138,6 @@ This is done because **Terraform doesn’t allow you to declare the backend as a
 - Execute the ```main.tf``` file. This will create your S3 bucket and DynamoDB lock table separately, so your main project can use them. 
 
 ### 3. Creating the ```backend.tf``` file
-- In your main project folder, create a file known as ```backend.tf``` , which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of  the main code.
+- In your main project folder, create a file known as ```backend.tf```, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` in the **s3_backend** folder.
 
 ### 4. Execute the code
