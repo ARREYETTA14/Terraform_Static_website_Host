@@ -68,11 +68,11 @@ Static websites need to be public — this unlocks access.
 resource "aws_s3_bucket_public_access_block" "example" {}
 ```
 
-- Set ACL to public-read
+- Create a bucket policy that makes the bucket public
 👀 So people can view your site.
 
 ```hcl
-resource "aws_s3_bucket_acl" "Acl" {}
+resource "aws_s3_bucket_policy" "public_access" {}
 ```
 - Upload files:
 📂 Terraform will push the actual files to your S3 bucket — HTML, CSS, images, etc.
