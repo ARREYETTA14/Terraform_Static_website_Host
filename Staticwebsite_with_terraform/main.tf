@@ -6,6 +6,10 @@ resource "aws_s3_bucket" "static-website-hoster" {
   }
 }
 
+######################################################################################################
+# Policy Block 
+######################################################################################################
+
 ## Ownership Control to show that everything in this bucket is owned by you. So no one changes anything 
 resource "aws_s3_bucket_ownership_controls" "example" {
   bucket = aws_s3_bucket.static-website-hoster.id
@@ -26,7 +30,7 @@ resource "aws_s3_bucket_public_access_block" "example" {
 }
 
 ## Bucket ACLs
-resource "aws_s3_bucket_acl" "example" {
+resource "aws_s3_bucket_acl" "Acl" {
   depends_on = [
     aws_s3_bucket_ownership_controls.example,
     aws_s3_bucket_public_access_block.example,
@@ -35,29 +39,33 @@ resource "aws_s3_bucket_acl" "example" {
   bucket = aws_s3_bucket.static-website-hoster.id
   acl    = "public-read"
 }
+######################################################################################################
+# End of policy block
+######################################################################################################
+
 ## Upload objects in bucket
 # uploading index.html file
-resource "aws_s3_bucket_object" "index" {
+resource "aws_s3_object" "index" {
   bucket = aws_s3_bucket.static-website-hoster.id
   key    = "index.html"
-  source = "path...../index.html" ## If found in same directory, just give name .e.g index.html
+  source = "./index.html" ## If found in same directory, just give name .e.g index.html
   acl = "public-read"
-  content_type = "text/html"
+  # content_type = "text/html"
 }
 #uploading error.html file
-resource "aws_s3_bucket_object" "error" {
+resource "aws_s3_object" "error" {
   bucket = aws_s3_bucket.static-website-hoster.id
   key    = "error.html"
-  source = "path...../error.html" ## If found in same directory, just give name .e.g error.html
+  source = "./error.html" ## If found in same directory, just give name .e.g error.html
   acl = "public-read"
-  content_type = "text/html"
+  # content_type = "text/html"
 }
 
 ##upload picture to be be used by the index.html file
-resource "aws_s3_bucket_object" "profile_picture" {
+resource "aws_s3_object" "profile_picture" {
   bucket = aws_s3_bucket.static-website-hoster.id
   key    = "profile.jpg"
-  source = "path...../profile.jpg" ## If found in same directory, just give name .e.g profile.jpg
+  source = "./profile.jpg" ## If found in same directory, just give name .e.g profile.jpg
   acl = "public-read"
 }
 
@@ -73,7 +81,7 @@ resource "aws_s3_bucket_website_configuration" "website" {
     key = var.error_document
   }
 
-depends_on = [ aws_s3_bucket_acl.example ]
+depends_on = [ aws_s3_bucket_acl.Acl ]
 }
 
 ## Note that, you can as well upload your css. files 
