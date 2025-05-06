@@ -29,7 +29,7 @@ A working `index.html`, `error.html`, `styles.css`, and some images in your proj
 ├── index.html
 ├── error.html
 ├── styles.css
-├── profile.jpg
+├── cameroonian-dish-1.jpg
 └── other-images/
 ```
 ### 1. Configure Your AWS Provider
