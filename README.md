@@ -93,13 +93,14 @@ resource "aws_s3_bucket_website_configuration" "website" {}
 ```
 
 - Output
-In output.tf, it displays the bucket URL so you can grab and test in the browser.
+The ```output.tf``` displays the bucket URL so you can grab and test in the browser.
 
 ```hcl
-output "websiteendpoint" {
-    value = aws_s3_bucket.static-website-hoster.id
+output "website_url" {
+  value = aws_s3_bucket.static-website-hoster.website_endpoint
 }
 ```
+
 ### 4. Running the Project:
 In your terminal, do the following:
 
