@@ -58,6 +58,7 @@ resource "aws_s3_bucket_ownership_controls" "example" {}
 
 If you're not the owner of the object...
 
+
 ❌ You can’t change its permissions
 ❌ You might not be able to delete it
 ❌ You can’t read or modify its metadata
