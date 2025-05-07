@@ -43,7 +43,8 @@ Set your provider and specify more on your ```AWS Region``` and ```your Profile`
 Here’s what each block in ```main.tf``` does:
 
 - Create the Bucket
-This is where all your website files will sit.
+
+This is where all your website files will sit once the deployment is up and running.
 ```hcl
 resource "aws_s3_bucket" "static-website-hoster" {
 ```
@@ -78,7 +79,7 @@ resource "aws_s3_bucket_policy" "public_access" {}
 📂 Terraform will push the actual files to your S3 bucket — HTML, CSS, images, etc.
 
 - Website Hosting Configuration
-This turns your S3 bucket into a mini web server. Your site will be available via a public URL!
+This turns your S3 bucket into a mini web server. Your site will be available *via* a public URL!
 
 ```hcl
 resource "aws_s3_object" "index" {}
@@ -115,7 +116,7 @@ terraform plan
 terraform apply 
 ```
 
-# Section Two: Using S3_backend dynamodb lock
+# Section Two: Using S3_backend and dynamodb lock
 
 ## 🧭 Overview
 This section upgrades your Terraform workflow to use a remote backend — storing state in an S3 bucket, and locking it with DynamoDB to prevent multiple people from accessing your infrastructure at the same time.
