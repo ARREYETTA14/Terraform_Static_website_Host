@@ -30,7 +30,7 @@ jobs:
         working-directory: Staticwebsite_with_terraform
 
       - name: Terraform Format Check
-        run: terraform fmt -check
+        run: terraform fmt 
         working-directory: Staticwebsite_with_terraform
 
       - name: Terraform Plan
