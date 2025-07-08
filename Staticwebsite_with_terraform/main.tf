@@ -1,5 +1,5 @@
 
-########### Creating S3 Bucket ############
+########### Creating S3 Bucket ##############
 
 ## Create Bucket
 resource "aws_s3_bucket" "static-website-hoster" {
