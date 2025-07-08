@@ -60,7 +60,9 @@ If you're not the owner of the object...
 
 
 ❌ You can’t change its permissions
+
 ❌ You might not be able to delete it
+
 ❌ You can’t read or modify its metadata
 
 -  Make Bucket Public
@@ -154,44 +156,68 @@ name: Deploy Static Website with Terraform
 
 on:
   push:
-    branches: [main]
+    branches: 
+      - main
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository code
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      # Set up Terraform CLI
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
+      # Configure AWS credentials from GitHub secrets
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # or your region
+          aws-region: sa-east-1  # or your region
 
+      # Initialize Terraform in the working directory
       - name: Terraform Init
         run: terraform init
         working-directory: Staticwebsite_with_terraform
 
+      # Run Terraform fmt to ensure files are properly formatted
       - name: Terraform Format Check
-        run: terraform fmt -check
+        run: terraform fmt 
         working-directory: Staticwebsite_with_terraform
 
+      # Run Terraform plan to preview infrastructure changes
       - name: Terraform Plan
         run: terraform plan
         working-directory: Staticwebsite_with_terraform
 
+      # Apply Terraform configuration to deploy resources
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: Staticwebsite_with_terraform
+
+      # Output the website URL from Terraform outputs
+      - name: Output Website URL
+        run: terraform output website_url
+        working-directory: Staticwebsite_with_terraform
+
+      # Output the website URL from Terraform outputs
+      - name: Output Website URL
+        run: |
+          echo "🚀 Website URL:"
+          terraform output website_url
         working-directory: Staticwebsite_with_terraform
 ```
 
 Make sure to change the ```aws-region``` to your actual desired region of deployment.
+
+- Once the workflow is committed, the code will be deployed in AWS 
+- Get to your **Github Action Logs** and get the **website_url** from there and test.
+
 
