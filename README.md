@@ -20,7 +20,7 @@ A working `index.html`, `error.html`, `styles.css`, and some images in your proj
 
 ### File structure 
 ```lua
-.
+Staticwebsite_with_terraform
 ├── main.tf
 ├── variable.tf
 ├── provider.tf
@@ -131,7 +131,7 @@ This section upgrades your Terraform workflow to use a remote backend — storin
 
 ## Step by step Process
 
-### 1. Create a new folder in your present directory called ```create_dynamondblock_&_s3_backend```
+### 1. Create a new folder in your present directory called ```s3_backend```
 - In this folder, create a file ```main.tf```. The file has code that creates the Dynamodb table and the bucket in which the state file will lie.
 
 This is done because **Terraform doesn’t allow you to declare the backend as a resource in the same config where you use it.**. In other words, Terraform needs the backend before it can know where to even store the plan. So it can’t use itself to create that thing first.
@@ -142,14 +142,14 @@ This is done because **Terraform doesn’t allow you to declare the backend as a
 - Execute the ```main.tf``` file. This will create your S3 bucket and DynamoDB lock table separately, so your main project can use them. 
 
 ### 3. Creating the ```backend.tf``` file
-- In your main project folder, create a file known as ```backend.tf```, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` in the **s3_backend** folder.
+- In your main project folder(Staticwebsite_with_terraform), create a file known as ```dynamodb_lock.tf```, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` file.
 
 ### 4. Execute the code
 
 
 # Section Three: Using GitAction to Trigger deployment
 
-- Based on my above file structure, make sure the **Staticwebsite_with_terraform** directory has all the main code files, media files, html and css files.
+- Based on my above file structure, make sure the **Staticwebsite_with_terraform** directory has all the main code files, media files, html and css files. Except the ``dynamodb_lock.tf`` file.
 - Create a workflow file in the directory ``.github/workflows/deploy.yml`` and paste in the following code
 ```yml
 name: Deploy Static Website with Terraform
@@ -219,5 +219,8 @@ Make sure to change the ```aws-region``` to your actual desired region of deploy
 
 - Once the workflow is committed, the code will be deployed in AWS 
 - Get to your **Github Action Logs** and get the **website_url** from there and test.
+
+
+Now you can intergrate a ``Dynamodb_lock_&_s3_backend`` as shown on **section two**.
 
 
