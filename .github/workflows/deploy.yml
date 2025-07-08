@@ -41,3 +41,7 @@ jobs:
         run: terraform apply -auto-approve
         working-directory: Staticwebsite_with_terraform
 
+      - name: Output Website URL
+        run: terraform output website_url
+        working-directory: Staticwebsite_with_terraform
+
