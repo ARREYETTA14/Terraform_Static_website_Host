@@ -1,3 +1,3 @@
 output "website_url" {
-  value = aws_s3_bucket.static-website-hoster.website_domain
+  value = aws_s3_bucket_website_configuration.website.website_endpoint
 }
