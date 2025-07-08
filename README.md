@@ -143,3 +143,55 @@ This is done because **Terraform doesn’t allow you to declare the backend as a
 - In your main project folder, create a file known as ```backend.tf```, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` in the **s3_backend** folder.
 
 ### 4. Execute the code
+
+
+# Section Three: Using GitAction to Trigger deployment
+
+- Based on my above file structure, make sure the **Staticwebsite_with_terraform** directory has all the main code files, media files, html and css files.
+- Create a workflow file in the directory ``.github/workflows/deploy.yml`` and paste in the following code
+```yml
+name: Deploy Static Website with Terraform
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # or your region
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: Staticwebsite_with_terraform
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+        working-directory: Staticwebsite_with_terraform
+
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: Staticwebsite_with_terraform
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: Staticwebsite_with_terraform
+```
+
+Make sure to change the ```aws-region``` to your actual desired region of deployment.
+
