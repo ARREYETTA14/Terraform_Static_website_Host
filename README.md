@@ -90,7 +90,7 @@ resource "aws_s3_object" "error" {}
 resource "aws_s3_object" "profile_picture" {}
 ```
 
-- Rendering s3 a static website
+- Rendering s3 a static website.
 
 ```hcl
 resource "aws_s3_bucket_website_configuration" "website" {}
