@@ -48,6 +48,7 @@ resource "aws_s3_bucket_policy" "public_access" {
       }
     ]
   })
+depends_on = [ aws_s3_bucket_public_access_block.example ]
 }
 
 
@@ -55,7 +56,7 @@ resource "aws_s3_bucket_policy" "public_access" {
 # End of policy block
 ######################################################################################################
 
-############## Uploading upjects ###############
+############## Uploading objects ###############
 
 # uploading index.html file
 resource "aws_s3_object" "index" {
