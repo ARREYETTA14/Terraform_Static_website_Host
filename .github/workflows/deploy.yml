@@ -45,3 +45,9 @@ jobs:
         run: terraform output website_url
         working-directory: Staticwebsite_with_terraform
 
+      # Output the website URL from Terraform outputs
+      - name: Output Website URL
+        run: |
+          echo "🚀 Website URL:"
+          terraform output website_url
+        working-directory: Staticwebsite_with_terraform
