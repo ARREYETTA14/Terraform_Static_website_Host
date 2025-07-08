@@ -149,7 +149,26 @@ This is done because **Terraform doesn’t allow you to declare the backend as a
 
 # Section Three: Using GitAction to Trigger deployment
 
+### 🔐 3.1 Setting Up AWS Credentials in GitHub
+Before your workflow can deploy to AWS, GitHub needs permission to access your AWS account. This is done securely through GitHub Secrets.
+
+### Step-by-step: Add AWS credentials to GitHub
+- Go to your GitHub repo
+- Click on the **Settings** tab
+- In the left sidebar, scroll to:
+```nginx
+Secrets and variables → Actions
+```
+- Click the **“New repository secret”** button
+- Add two secrets:
+```txt
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+```
+Using the Principle of **Least Privilege**, to deploy to S3, the IAM user should have the ``AmazonS3FullAccess`` policy.
+
 - Based on my above file structure, make sure the **Staticwebsite_with_terraform** directory has all the main code files, media files, html and css files. Except the ``dynamodb_lock.tf`` file.
+
 - Create a workflow file in the directory ``.github/workflows/deploy.yml`` and paste in the following code
 ```yml
 name: Deploy Static Website with Terraform
