@@ -131,7 +131,7 @@ terraform apply
 # Section Two: Using S3_backend and dynamodb lock
 
 ## 🧭 Overview
-This section upgrades your Terraform workflow to use a remote backend — storing state in an S3 bucket, and locking it with DynamoDB to prevent multiple people from accessing your infrastructure at the same time.
+Terraform requires a pre-existing storage location to hold its state database before it can track infrastructure. Therefore, you must provision the S3 Bucket and DynamoDB table first using a bootstrap configuration.
 
 ## Why You Want This
 - 🧠 Statefile = brain of Terraform. If it gets corrupted? Chaos.
@@ -145,13 +145,13 @@ This section upgrades your Terraform workflow to use a remote backend — storin
 
 This is done because **Terraform doesn’t allow you to declare the backend as a resource in the same config where you use it.**. In other words, Terraform needs the backend before it can know where to even store the plan. So it can’t use itself to create that thing first.
 
-**NB**: The table must have a partition key named ```LockID``` with a type of ```String```. 
+**NB**: The table must have a partition key named ``LockID`` with a type of ``String``. 
 
 ### 2. Running the File 
 - Execute the ```main.tf``` file. This will create your S3 bucket and DynamoDB lock table separately, so your main project can use them. 
 
 ### 3. Creating the ```backend.tf``` file
-- In your main project folder(Staticwebsite_with_terraform), create a file known as ```dynamodb_lock.tf```, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` file.
+- In your main project folder(``Staticwebsite_with_terraform``), create a file known as ``dynamodb_lock.tf``, which contains code which allows you to call the **Dynamodb** and **S3_backend** created above during the execution of the ```main.tf``` file.
 
 ### 4. Execute the code
 
