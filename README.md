@@ -1,24 +1,27 @@
 
 # Deploy a Static Website to AWS S3 Using Terraform
 
-## 📌 Overview  
-This project uses Terraform to set up an AWS S3 bucket as a static website host. It automatically uploads your HTML, CSS, and image files to the bucket and makes them publicly accessible.  
+
+Deploy a Static Website to AWS S3 Using Terraform
+
+📌 Overview
+This project uses Terraform to spin up an AWS S3 bucket configured for static website hosting. It automatically uploads your HTML, CSS, and restaurant images to the bucket while configuring the necessary security and bucket policies so your platform is instantly live and publicly accessible over the internet.
 
 So basically: write your website → run Terraform → your site is live. 🚀  
 
 ## 🧰 Prerequisites  
 Before you begin, make sure you have the following installed:  
 
-- Terraform (v1.3+ recommended)  
-- AWS CLI  
-
-AWS account and credentials configured (`aws configure`)  
+- **Terraform** (v1.3+ recommended)  
+- **AWS CLI** installed
+- **AWS account credentials** configured locally by running ``aws configure`` in your terminal.
 
 A working `index.html`, `error.html`, `styles.css`, and some images in your project directory  
 
-## Step by step Process  
+## Project File Structure
 
-### File structure 
+Create a folder on your computer named ``Staticwebsite_with_terraform`` and organize your files exactly like this:
+
 ```lua
 Staticwebsite_with_terraform
 ├── main.tf
@@ -32,15 +35,21 @@ Staticwebsite_with_terraform
 ├── cameroonian-dish-1.jpg
 └── other-images/
 ```
-### 1. Configure Your AWS Provider
-Set your provider and specify more on your ```AWS Region``` and ```your Profile```. Save your code as ```provider.tf```
 
-### 2. Define variables and values.auto.tfvars file
-- This makes your setup reusable — you can plug in different values later without editing the core code.
-- Store your codes as **variable.tf** and **values.auto.tfvars**
 
-### 3. The main.tf file
-Here’s what each block in ```main.tf``` does:
+## 📝 Step-by-Step Code Configuration
+
+### 1. Configure Your AWS Provider (``provider.tf``)
+This file tells Terraform that it needs to connect to AWS to manage your infrastructure, using the region specified in your variables.
+
+### 2. Define variables (``variables.tf``)
+- Variables keep your codebase modular and clean. Instead of hardcoding values inside your core deployment scripts, declare them here.
+
+### 3. Set Your Custom Values (``values.auto.tfvars``)
+This file automatically injects values into the variables defined in Step 2.
+
+### 4. Write the Infrastructure Logic (``main.tf``)
+This is the core script. It builds the bucket, configures modern security blocks to allow public access, updates the bucket policy, and uploads your website files with accurate browser rendering rules.
 
 - Create the Bucket
 
@@ -105,7 +114,7 @@ output "website_url" {
 }
 ```
 
-### 4. Running the Project:
+### 5. Running the Project:
 In your terminal, do the following:
 
 ```bash
