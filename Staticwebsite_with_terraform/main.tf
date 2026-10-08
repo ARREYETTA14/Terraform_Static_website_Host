@@ -1,28 +1,23 @@
-
-########### Creating S3 Bucket ##############
-
-## Create Bucket
+# 1. Create the S3 Bucket resource
 resource "aws_s3_bucket" "static-website-hoster" {
-  bucket = "my-static-website-hoster134"
+  bucket = var.bucket_name
+
   tags = {
-    Name        = var.bucket_name
+    Name        = "African Restaurant Web Hoster"
+    Environment = "Production"
   }
 }
 
-######################################################################################################
-# Policy Block 
-######################################################################################################
-
-## Ownership Control to show that everything in this bucket is owned by you. So no one changes anything 
+# 2. Modern AWS Security Standard: Enforce Bucket Ownership Controls
 resource "aws_s3_bucket_ownership_controls" "example" {
   bucket = aws_s3_bucket.static-website-hoster.id
 
   rule {
-    object_ownership = "BucketOwnerEnforced"
+    object_ownership = "BucketOwnerEnforced" # Keeps legacy ACLs safely disabled
   }
 }
 
-## Make bucket public
+# 3. Unblock Public Access (Mandatory step for public static hosting)
 resource "aws_s3_bucket_public_access_block" "example" {
   bucket = aws_s3_bucket.static-website-hoster.id
 
@@ -32,82 +27,7 @@ resource "aws_s3_bucket_public_access_block" "example" {
   restrict_public_buckets = false
 }
 
-## bucket policy to allow public access to the bucket
-resource "aws_s3_bucket_policy" "public_access" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject",
-        Effect    = "Allow",
-        Principal = "*",
-        Action    = "s3:GetObject",
-        Resource  = "${aws_s3_bucket.static-website-hoster.arn}/*"
-      }
-    ]
-  })
-depends_on = [ aws_s3_bucket_public_access_block.example ]
-}
-
-
-######################################################################################################
-# End of policy block
-######################################################################################################
-
-############## Uploading objects ###############
-
-# uploading index.html file
-resource "aws_s3_object" "index" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "index.html"
-  source = "./index.html" ## If found in same directory, just give name .e.g index.html
-  content_type = "text/html"
-}
-#uploading error.html file
-resource "aws_s3_object" "error" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "error.html"
-  source = "./error.html" 
-  content_type = "text/html"
-}
-
-##upload picture to be used by the index.html file
-
-##image one
-resource "aws_s3_object" "profile_picture1" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "cameroonian-dish-1.jpg"
-  source = "./cameroonian-dish-1.jpg"
-  content_type = "image/jpg"
-}
-
-##image two
-resource "aws_s3_object" "profile_picture2" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "cameroonian-dish-2.jpg"
-  source = "./cameroonian-dish-2.jpg" 
-  content_type = "image/jpg"
-}
-
-## image three
-resource "aws_s3_object" "profile_picture3" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "Kenyan-dish-1.jpg"
-  source = "./Kenyan-dish-1.jpg" 
-  content_type = "image/jpg"
-}
-
-## image four
-resource "aws_s3_object" "profile_picture4" {
-  bucket = aws_s3_bucket.static-website-hoster.id
-  key    = "Kenyan-dish-2.jpg"
-  source = "./Kenyan-dish-2.jpg" 
-  content_type = "image/jpg"
-}
-
-## Renders S3 bucket a host for static website 
+# 4. Turn the S3 Bucket into a Static Web Server
 resource "aws_s3_bucket_website_configuration" "website" {
   bucket = aws_s3_bucket.static-website-hoster.id
 
@@ -118,9 +38,63 @@ resource "aws_s3_bucket_website_configuration" "website" {
   error_document {
     key = "error.html"
   }
-
-depends_on = [ aws_s3_bucket_policy.public_access ]
 }
 
-## Note that you can also upload your CSS. files 
-## As well as all other photos that will be used by the index.html file
+# 5. Attach a Public Read Policy (Explicitly relies on the Public Access Block finish first!)
+resource "aws_s3_bucket_policy" "public_access" {
+  bucket = aws_s3_bucket.static-website-hoster.id
+
+  # CRITICAL: Forces Terraform to wait until Public Access is completely unlocked before applying policy
+  depends_on = [aws_s3_bucket_public_access_block.example]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.static-website-hoster.arn}/*"
+      }
+    ]
+  })
+}
+
+# 6. Upload Core Document Files (with accurate Content-Type mappings)
+resource "aws_s3_object" "index" {
+  bucket       = aws_s3_bucket.static-website-hoster.id
+  key          = "index.html"
+  source       = "${path.module}/index.html"
+  content_type = "text/html"
+}
+
+resource "aws_s3_object" "error" {
+  bucket       = aws_s3_bucket.static-website-hoster.id
+  key          = "error.html"
+  source       = "${path.module}/error.html"
+  content_type = "text/html"
+}
+
+resource "aws_s3_object" "styles" {
+  bucket       = aws_s3_bucket.static-website-hoster.id
+  key          = "styles.css"
+  source       = "${path.module}/styles.css"
+  content_type = "text/css"
+}
+
+# 7. Dynamically Upload All Images (Scans root for any jpg, jpeg, or png files)
+resource "aws_s3_object" "restaurant_images" {
+  for_each = fileset(path.module, "*.{jpg,jpeg,png}")
+
+  bucket       = aws_s3_bucket.static-website-hoster.id
+  key          = each.value
+  source       = "${path.module}/${each.value}"
+  
+  # Map image extensions dynamically so the browser renders them instead of downloading them
+  content_type = lookup({
+    "jpg"  = "image/jpeg"
+    "jpeg" = "image/jpeg"
+    "png"  = "image/png"
+  }, element(split(".", each.value), length(split(".", each.value)) - 1), "binary/octet-stream")
+}
