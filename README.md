@@ -156,30 +156,102 @@ This is done because **Terraform doesn’t allow you to declare the backend as a
 ### 4. Execute the code
 
 
-# Section Three: Using GitAction to Trigger deployment
+# Section Three: Automating Deployment via GitHub Actions (OIDC)
 
-### 🔐 3.1 Setting Up AWS Credentials in GitHub
-Before your workflow can deploy to AWS, GitHub needs permission to access your AWS account. This is done securely through GitHub Secrets.
+### 🔐 3.1 Establishing the Trust Interface in AWS IAM
 
-### Step-by-step: Add AWS credentials to GitHub
-- Go to your GitHub repo
-- Click on the **Settings** tab
-- In the left sidebar, scroll to:
-```nginx
-Secrets and variables → Actions
+Before your GitHub repository can talk to AWS, you must establish an IAM Identity Provider and a dedicated IAM Role that knows how to validate GitHub's secure time signatures.
+
+### Part A: Create the OIDC Identity Provider (If not already created)
+- Sign in to your AWS Management Console.
+- In the top search bar, look for **IAM** and navigate to the IAM Dashboard.
+- In the left-hand navigation pane, click **Identity providers**, then click the **Add provider** button.
+- Configure these fields precisely:
+    - **Provider type**: Select ``OpenID Connect``.
+    - **Provider URL**: Paste ``https://token.actions.githubusercontent.com``.
+    - **Audience Type**: Paste ``sts.amazonaws.com``
+- Click Add provider.
+
+
+## Part B: Configure the IAM Role and Trust Relationship Policy
+
+Now, you need to create an AWS role that your GitHub pipeline is allowed to assume.
+
+1. In the left sidebar of the **IAM Console**, click **Roles** and then click **Create role**.
+2. Select Custom trust policy under **Trusted entity type**
+3. Paste the following JSON block into the policy editor. 🚨 CRITICAL: Replace ``<YOUR_AWS_ACCOUNT_ID>``, ``<YOUR_GITHUB_ORGANIZATION_OR_USER>``, and ``<YOUR_GITHUB_REPO_NAME>`` with your actual deployment details:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringLike": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:<YOUR_GITHUB_USERNAME_OR_ORG>/<YOUR_REPOSITORY_NAME>:*"
+        }
+      }
+    }
+  ]
+}
 ```
-- Click the **“New repository secret”** button
-- Add two secrets:
-```txt
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
+4. Click **Next**
+5. On the **Add permissions screen**, search for and check the box next to ``AmazonS3FullAccess`` (or attach a limited policy that only allows writes to your specific bucket).
+6. Click **Next**.
+7. **Role name**: Enter ``github-s3-deploy-role``.
+8. Review your choices and click **Create role**.
+9. Copy the **ARN** string of your new role (it will look like arn:aws:iam::123456789012:role/github-s3-deploy-role).
+
+## 3.2 Creating the Production Pipeline Configuration File
+
+### structure
+```text
+Staticwebsite_with_terraform/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── provider.tf
+├── variable.tf
+├── values.auto.tfvars
+├── main.tf
+├── output.tf
+├── index.html
+├── error.html
+├── styles.css
+├── cameroonian-dish-1.jpg
+├── cameroonian-dish-2.jpg
+├── Kenyan-dish-1.jpg
+└── Kenyan-dish-2.jpg
 ```
-Using the Principle of **Least Privilege**, to deploy to S3, the IAM user should have the ``AmazonS3FullAccess`` policy.
+Before you configure your workflow, you need to make the Role ARN available to it. You'll store it as a repository variable in GitHub, not a secret, because the ARN itself isn't sensitive data.
 
-- Based on my above file structure, make sure the **Staticwebsite_with_terraform** directory has all the main code files, media files, html and css files. Except the ``dynamodb_lock.tf`` file.
+- First, open your GitHub repository and click **Settings**.
+- In the left sidebar, scroll down to **Secrets and variables**, then click **Actions**.
+- Then click the **Variables** tab (not Secrets). Click **New repository variable** – you can put the name as **AWS_GITHUB_ROLE**.
+- Set the Value to your **Role ARN**
+- Click **Add variable**
 
-- Create a workflow file in the directory ``.github/workflows/deploy.yml`` and paste in the following code
-```yml
+With AWS and GitHub fully configured, you now need to update your workflow to request an OIDC token and use it to authenticate.
+
+1. Open your local code workspace directory (``Staticwebsite_with_terraform``).
+2. Create a folder named ``.github``, and create a subfolder inside it named ``workflows``.
+3. Create a brand new file inside that folder named ``deploy.yml``.
+4. Save the following code block inside ``deploy.yml``.
+
+- Your workflow must declare ``id-token: write``. Without this, GitHub won't issue an OIDC token to the runner.
+
+```yaml
+ 
+      - name: Deploy to S3
+        run: |
+          aws s3 sync ./code s3://your-bucket-name
+
 name: Deploy Static Website with Terraform
 
 on:
@@ -187,68 +259,91 @@ on:
     branches: 
       - main
 
+# Required root permissions to allow OIDC token exchange
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository code
+      # 1. Checkout the repository code
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Set up Terraform CLI
+      # 2. Set up modern Terraform CLI
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
-      # Configure AWS credentials from GitHub secrets
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      # 3. Securely assume AWS Role using OIDC (No Static Keys Required!)
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: sa-east-1  # or your region
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: sa-east-1
 
-      # Initialize Terraform in the working directory
+      # 🚨 ADDED CHECKPOINT: Verify the assumed role identity before executing code
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      # 4. Initialize Terraform (This automatically reads backend.tf and pulls state)
       - name: Terraform Init
         run: terraform init
         working-directory: Staticwebsite_with_terraform
 
-      # Run Terraform fmt to ensure files are properly formatted
+      # 5. Run Format check to enforce clean styling syntax
       - name: Terraform Format Check
-        run: terraform fmt 
+        run: terraform fmt -check
         working-directory: Staticwebsite_with_terraform
 
-      # Run Terraform plan to preview infrastructure changes
+      # 6. Run Terraform plan to preview infrastructure changes
       - name: Terraform Plan
         run: terraform plan
         working-directory: Staticwebsite_with_terraform
 
-      # Apply Terraform configuration to deploy resources
+      # 7. Apply Terraform configuration with the backend lock engaged
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: Staticwebsite_with_terraform
 
-      # Output the website URL from Terraform outputs
-      - name: Output Website URL
-        run: terraform output website_url
-        working-directory: Staticwebsite_with_terraform
-
-      # Output the website URL from Terraform outputs
+      # 8. Print out the final live website landing URL
       - name: Output Website URL
         run: |
-          echo "🚀 Website URL:"
-          terraform output website_url
+          echo "🚀 Deployed Successfully!"
+          echo "Your live website URL is:"
+          terraform output -raw website_url
         working-directory: Staticwebsite_with_terraform
+
 ```
 
 Make sure to change the ```aws-region``` to your actual desired region of deployment.
 
-- Once the workflow is committed, the code will be deployed in AWS 
+## 3.3 Running and Testing the Combined System
+To deploy your infrastructure and launch your updated restaurant website using this automated pipeline, run these commands in your local computer terminal:
+
+```bash
+# Stage all updated file changes (HTML, CSS, TF blocks)
+git add .
+
+# Create an execution checkpoint commit
+git commit -m "feat: integrate secure OIDC workflow and remote state locks"
+
+# Push to your remote tracking branch to trigger the pipeline
+git push origin main
+```
+*Note: This is done if the application code is in your local machine and not in GitHub already. If it were in GitHub already, the moment you committe your workflow, the pipeline will automatically be executed.*
+
+- Once the workflow is committed, the code will be deployed in AWS.
+- To track the execution Progress, navigate to the **Actions** tab of the GitHub Repository.
+- Click on the, running workflow instance named ``feat: integrate secure OIDC workflow and remote state locks``.
+- Click on the terraform job block in the graph to view live build streams
 - Get to your **Github Action Logs** and get the **website_url** from there and test.
 
 
-Now you can intergrate a ``Dynamodb_lock_&_s3_backend`` as shown on **section two**.
+Now you can intergrate a ``Dynamodb_lock_&_s3_backend`` as shown on **Section two**.
 
 
